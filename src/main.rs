@@ -1,12 +1,19 @@
-use std::net::UdpSocket;
+use tokio::net::UdpSocket;
 
-fn main() -> std::io::Result<()> {
-    let socket = UdpSocket::bind("127.0.0.1:8080")?;
-    let mut buf = [0 as u8; 1024];
-    println!("监听 127.0.0.1:8080");
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let socket = UdpSocket::bind("127.0.0.1:8080").await?;
+    println!("异步UDP服务器启动");
+
+    let mut buf = [0u8; 1024];
+
     loop {
-        let (amt, src) = socket.recv_from(&mut buf)?;
-        println!("收到 {} 字节数据 {:?} 来自 {:?}", amt, &buf[..amt], src);
-        socket.send_to(&buf[..amt], src)?;
+        // 异步recv_from：非阻塞
+        let (len, src_addr) = socket.recv_from(&mut buf).await?;
+        let msg = String::from_utf8_lossy(&buf[..len]);
+        println!("收到: {} from {}", msg, src_addr);
+
+        // 异步send_to
+        socket.send_to(&buf[..len], src_addr).await?;
     }
 }
